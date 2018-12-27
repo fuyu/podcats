@@ -1,16 +1,34 @@
-<article class="col-md-6 col-lg-4">
-    <h2><a href="{{ url }}">{{ title }}</a></h2>
-    {% if image_url %}
-    <img class="book-cover" src="{{ image_url }}"/>
-    {% endif %}
-    <ul>
-        <li>Directory: {{ directory }}</li>
-        <li>File: {{ filename }}</li>
-        <li>Date: {{ date }}</li>
-        <li>Size: {{ length }}</li>
-        <li>Mimetype: {{ mimetype }}</li>
-    </ul>
-    <audio controls>
-        <source src="{{ url }}"/>
-    </audio>
-</article>
+<table style="font-size:12px">
+  <tr>
+    <td>
+      {% if image_url %}
+      <img src="{{ image_url }}" style="width:50px;height:50px" />
+      {% endif %}
+    </td>
+    <td width="20%">
+      <a href="{{ url }}" style="font-size:12px">{{ title }}</a>
+    </td>
+    <!--
+    <td>
+      Directory: {{ directory }}
+    </td>
+    -->
+    <td width="20%">
+      <span style="font-size:12px">{{ filename }}</span>
+    </td>
+    <td>
+      {{ date }}
+    </td>
+    <td>
+      Size: {{ length }}
+    </td>
+    <td>
+      Mimetype:<br/>{{ mimetype }}
+    </td>
+    <td>
+      <audio controls>
+          <source src="{{ url }}"/>
+      </audio>
+    </td>
+  </tr>
+</table>

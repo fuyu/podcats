@@ -15,6 +15,12 @@ import mimetypes
 from email.utils import formatdate
 from xml.sax.saxutils import escape, quoteattr
 
+# Fix error:
+# UnicodeDecodeError: 'ascii' codec can't decode byte
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 try:
     from urllib.request import pathname2url
 except ImportError:
@@ -52,6 +58,8 @@ class Episode(object):
         self.root_url = root_url
         self.length = os.path.getsize(filename)
         self.tags = mutagen.File(self.filename, easy=True)
+        #print('tags: {}'.format(self.tags))
+
         try:
             self.id3 = ID3(self.filename)
         except Exception:
@@ -115,7 +123,7 @@ class Episode(object):
     @property
     def title(self):
         """Return episode title"""
-        text = os.path.splitext(os.path.basename(self.filename))[0]
+        text = ''
         if self.id3 is not None:
             val = self.id3.getall('TIT2')
             if len(val) > 0:
@@ -123,6 +131,8 @@ class Episode(object):
             val = self.id3.getall('COMM')
             if len(val) > 0:
                 text += ' ' + str(val[0])
+        if len(text) == 0:
+            text = os.path.splitext(os.path.basename(self.filename))[0]
         return text
 
     @property
@@ -137,7 +147,9 @@ class Episode(object):
         if dt:
             formats = [
                 '%Y-%m-%d:%H:%M:%S',
+                '%Y-%m-%d %H:%M:%S',
                 '%Y-%m-%d:%H:%M',
+                '%Y-%m-%d %H:%M',
                 '%Y-%m-%d:%H',
                 '%Y-%m-%d',
                 '%Y-%m',
@@ -204,7 +216,7 @@ class Channel(object):
                 filepath = os.path.join(root, fn)
                 mimetype = mimetypes.guess_type(filepath)[0]
                 if mimetype and 'audio' in mimetype or filepath.endswith('m4b'):
-                    yield Episode(filepath, relative_dir, self.root_url)
+                    yield Episode(filepath, relative_dir, self.link)
 
     def as_xml(self):
         """Return channel XML with all episode items"""
@@ -213,6 +225,7 @@ class Channel(object):
             title=escape(self.title),
             description=escape(self.description),
             link=escape(self.link),
+            image_url=self.image,
             items=u''.join(episode.as_xml() for episode in sorted(self))
         ).strip()
 
@@ -223,8 +236,35 @@ class Channel(object):
             title=escape(self.title),
             description=self.description,
             link=escape(self.link),
+            image_url=self.image,
             items=u''.join(episode.as_html() for episode in sorted(self)),
         ).strip()
+
+    def _to_url(self, filepath):
+        fn = os.path.basename(filepath)
+        #path = STATIC_PATH + '/' + self.relative_dir + '/' + fn
+        path = STATIC_PATH + '/' + fn
+        path = re.sub(r'//', '/', path)
+        url = self.link + pathname2url(path)
+        return url
+
+    @property
+    def image(self):
+        """Return an eventual cover image"""
+        #directory = os.path.split(self.root_dir)[0]
+        directory = self.root_dir
+        image_files = []
+
+        for fn in os.listdir(directory):
+            ext = os.path.splitext(fn)[1]
+            if ext.lower() in BOOK_COVER_EXTENSIONS:
+                image_files.append(fn)
+
+        if len(image_files) > 0:
+            abs_path_image = image_files[0]
+            return self._to_url(abs_path_image)
+        else:
+            return None
 
 
 def serve(channel):
